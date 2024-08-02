@@ -5,6 +5,7 @@
 import os
 import json
 import openai
+from openai import OpenAI
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 from langchain.chat_models import ChatOpenAI
@@ -16,55 +17,62 @@ from langchain.schema import HumanMessage, AIMessage, ChatMessage
 # --------------------------------------------------------------
 
 load_dotenv()
-openai.api_key = os.getenv("OPENAI_API_KEY")
+# client = OpenAI(
+#     api_key = os.environ['OPENAI_API_KEY'],
+# )
 
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
 # --------------------------------------------------------------
 # Ask ChatGPT a Question
 # --------------------------------------------------------------
-
-completion = openai.ChatCompletion.create(
-    model="gpt-3.5-turbo-0613",
+# client = OpenAI()
+completion = openai.chat.completions.create(
+    model="gpt-3.5-turbo",
     messages=[
         {
             "role": "user",
             "content": "When's the next flight from Amsterdam to New York?",
-        },
+        }
     ],
-)
+)  # THIS WORKS!
 
 output = completion.choices[0].message.content
 print(output)
+
+# leanswer = openai.completions.create(model="gpt-3.5-turbo-instruct", prompt=prompt.text, max_tokens=1000)
 
 # --------------------------------------------------------------
 # Use OpenAI’s Function Calling Feature
 # --------------------------------------------------------------
 
-function_descriptions = [
-    {
-        "name": "get_flight_info",
-        "description": "Get flight information between two locations",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "loc_origin": {
-                    "type": "string",
-                    "description": "The departure airport, e.g. DUS",
+function_descriptions = (
+    [  # here the function doesnt exist - its the description provided to API
+        {
+            "name": "get_flight_info",
+            "description": "Get flight information between two locations",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "loc_origin": {
+                        "type": "string",
+                        "description": "The departure airport, e.g. DUS",
+                    },
+                    "loc_destination": {
+                        "type": "string",
+                        "description": "The destination airport, e.g. HAM",
+                    },
                 },
-                "loc_destination": {
-                    "type": "string",
-                    "description": "The destination airport, e.g. HAM",
-                },
+                "required": ["loc_origin", "loc_destination"],
             },
-            "required": ["loc_origin", "loc_destination"],
-        },
-    }
-]
+        }
+    ]
+)
 
 user_prompt = "When's the next flight from Amsterdam to New York?"
 
-completion = openai.ChatCompletion.create(
-    model="gpt-3.5-turbo-0613",
+completion = openai.chat.completions.create(
+    model="gpt-3.5-turbo",
     messages=[{"role": "user", "content": user_prompt}],
     # Add function calling
     functions=function_descriptions,

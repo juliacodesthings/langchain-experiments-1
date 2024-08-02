@@ -16,19 +16,19 @@ load_dotenv(find_dotenv())
 embeddings = OpenAIEmbeddings()
 
 
-def create_db_from_youtube_video_url(video_url):
+def create_db_from_youtube_video_url(video_url): #do a text splitter since we can't use all tokens in transcript
     loader = YoutubeLoader.from_youtube_url(video_url)
     transcript = loader.load()
 
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=2000, chunk_overlap=100)
     docs = text_splitter.split_documents(transcript)
 
-    db = FAISS.from_documents(docs, embeddings)
+    db = FAISS.from_documents(docs, embeddings) #database with all vectors
     return db
 
 
 def get_response_from_query(db, query, k=4):
-    docs = db.similarity_search(query, k=k)
+    docs = db.similarity_search(query, k=k) #returns k documents from text splitter database
     docs_page_content = " ".join([d.page_content for d in docs])
 
     chat = ChatOpenAI(model_name="gpt-3.5-turbo-16k", temperature=0.2)
@@ -36,7 +36,7 @@ def get_response_from_query(db, query, k=4):
     # Template to use for the system message prompt
     template = """
         You are a helpful assistant that that can answer questions about youtube videos 
-        based on the video's transcript: {docs}
+        based on the video's transcript: {docs} 
         
         Only use the factual information from the transcript to answer the question.
         
@@ -54,7 +54,7 @@ def get_response_from_query(db, query, k=4):
         [system_message_prompt, human_message_prompt]
     )
 
-    chain = LLMChain(llm=chat, prompt=chat_prompt)
+    chain = LLMChain(llm=chat, prompt=chat_prompt) #chains all answers together
 
     response = chain.run(question=query, docs=docs_page_content)
     response = response.replace("\n", "")
@@ -62,9 +62,10 @@ def get_response_from_query(db, query, k=4):
 
 
 # Example usage:
-video_url = "https://www.youtube.com/watch?v=th4j9JxWGko"
+video_url = "https://youtu.be/FrqIA0PpAv8?si=LL2fKJnu6fqPJwhK"
 db = create_db_from_youtube_video_url(video_url)
 
-query = "what is this video about?"
+query = "what makes house music different from disco?"
 response, docs = get_response_from_query(db, query)
 print(textwrap.fill(response, width=50))
+
